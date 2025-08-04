@@ -1,0 +1,52 @@
+name: 03 - Build Fighter Profiles
+description: "Manually trigger fighter profiles processing from UFC HTML files"
+
+on:
+  workflow_dispatch:
+    inputs:
+      html_directory:
+        description: 'HTML directory to process'
+        required: true
+        default: 'fighter_profiles'
+        type: string
+
+jobs:
+  build-profiles:
+    runs-on: ubuntu-latest
+    name: Build Fighter Profiles from UFC HTML
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          pip install beautifulsoup4 pandas
+          
+      - name: Run Fighter Profiles Processor
+        run: python fighter_profiles_processor.py
+        env:
+          HTML_DIR: ${{ github.event.inputs.html_directory }}
+          
+      - name: Upload Fighter Profiles CSV
+        uses: actions/upload-artifact@v4
+        with:
+          name: fighter-profiles-csv
+          path: fighter_profiles.csv
+          retention-days: 30
+          
+      - name: Show processing summary
+        run: |
+          echo "=== Fighter Profiles Processing Summary ==="
+          if [ -f fighter_profiles.csv ]; then
+            echo "✅ fighter_profiles.csv created successfully"
+            echo "📊 Total fighters processed: $(wc -l < fighter_profiles.csv)"
+          else
+            echo "❌ fighter_profiles.csv not found"
+            exit 1
+          fi 

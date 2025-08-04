@@ -1,0 +1,55 @@
+name: 02 - Scrape ESPN Data
+description: "Manually trigger ESPN fighter stats scraping"
+
+on:
+  workflow_dispatch:
+    inputs:
+      fighters_file:
+        description: 'Fighters CSV file to use'
+        required: true
+        default: 'fighters_name.csv'
+        type: string
+
+jobs:
+  scrape-espn:
+    runs-on: ubuntu-latest
+    name: Scrape ESPN Fighter Stats
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 pandas tqdm
+          
+      - name: Create fighter_profiles directory
+        run: mkdir -p fighter_profiles
+        
+      - name: Run ESPN Scraper
+        run: python espn_fighter_scraper.py
+        env:
+          FIGHTERS_FILE: ${{ github.event.inputs.fighters_file }}
+          
+      - name: Upload ESPN HTML files
+        uses: actions/upload-artifact@v4
+        with:
+          name: espn-html-files
+          path: fighter_profiles/*.html
+          exclude: fighter_profiles/*_ufc.html
+          retention-days: 30
+          
+      - name: Upload ESPN CSV files
+        uses: actions/upload-artifact@v4
+        with:
+          name: espn-csv-files
+          path: |
+            striking_data.csv
+            clinch_data.csv
+            ground_data.csv
+          retention-days: 30 

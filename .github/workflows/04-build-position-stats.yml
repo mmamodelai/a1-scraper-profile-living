@@ -1,0 +1,56 @@
+name: 04 - Build Position Stats
+description: "Manually trigger position stats processing from ESPN data"
+
+on:
+  workflow_dispatch:
+    inputs:
+      input_file:
+        description: 'Input CSV file (fighter_profiles.csv or ESPN CSVs)'
+        required: true
+        default: 'fighter_profiles.csv'
+        type: string
+
+jobs:
+  build-position-stats:
+    runs-on: ubuntu-latest
+    name: Build Position Stats from ESPN Data
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          pip install pandas
+          
+      - name: Run Position Stats Processor
+        run: python position_stats_processor.py
+        env:
+          INPUT_FILE: ${{ github.event.inputs.input_file }}
+          
+      - name: Upload Position Stats CSVs
+        uses: actions/upload-artifact@v4
+        with:
+          name: position-stats-csvs
+          path: |
+            striking_data.csv
+            clinch_data.csv
+            ground_data.csv
+          retention-days: 30
+          
+      - name: Show processing summary
+        run: |
+          echo "=== Position Stats Processing Summary ==="
+          for file in striking_data.csv clinch_data.csv ground_data.csv; do
+            if [ -f "$file" ]; then
+              echo "✅ $file created successfully"
+              echo "📊 Total records in $file: $(wc -l < "$file")"
+            else
+              echo "❌ $file not found"
+            fi
+          done 

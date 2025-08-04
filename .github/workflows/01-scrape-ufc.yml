@@ -1,0 +1,51 @@
+name: 01 - Scrape UFC Data
+description: "Manually trigger UFC fighter profile scraping"
+
+on:
+  workflow_dispatch:
+    inputs:
+      fighters_file:
+        description: 'Fighters CSV file to use'
+        required: true
+        default: 'fighters_name.csv'
+        type: string
+
+jobs:
+  scrape-ufc:
+    runs-on: ubuntu-latest
+    name: Scrape UFC Fighter Profiles
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 pandas tqdm selenium undetected-chromedriver cloudscraper fake-useragent
+          
+      - name: Create fighter_profiles directory
+        run: mkdir -p fighter_profiles
+        
+      - name: Run UFC Scraper
+        run: python ufc_scraper.py
+        env:
+          FIGHTERS_FILE: ${{ github.event.inputs.fighters_file }}
+          
+      - name: Upload UFC HTML files
+        uses: actions/upload-artifact@v4
+        with:
+          name: ufc-html-files
+          path: fighter_profiles/*_ufc.html
+          retention-days: 30
+          
+      - name: Upload fighters CSV
+        uses: actions/upload-artifact@v4
+        with:
+          name: fighters-csv
+          path: fighters_name.csv
+          retention-days: 30 
