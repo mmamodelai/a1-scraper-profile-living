@@ -353,14 +353,14 @@ class UFCFighterPipeline:
             'Opponent': 'N/A',
             'Event': 'N/A',
             'Result': 'N/A',
-            'SDBL/A': fighter_data.get('Strikes by Position - Standing', '0/0'),
-            'SDHL/A': fighter_data.get('Strikes by Position - Clinch', '0/0'),
-            'SDLL/A': fighter_data.get('Strikes by Position - Ground', '0/0'),
+            'SDBL/A': fighter_data.get('Sig. Str. By Position - Standing', '0/0'),
+            'SDHL/A': fighter_data.get('Sig. Str. By Position - Clinch', '0/0'),
+            'SDLL/A': fighter_data.get('Sig. Str. By Position - Ground', '0/0'),
             'TSL': fighter_data.get('Sig. Strikes Landed', '0'),
             'TSA': fighter_data.get('Sig. Strikes Attempted', '0'),
             'SSL': fighter_data.get('Sig. Strikes Landed', '0'),
             'SSA': fighter_data.get('Sig. Strikes Attempted', '0'),
-            'TSL-TSA': f"{fighter_data.get('Striking Accuracy', '0%')}",
+            'TSL-TSA': f"{fighter_data.get('Striking accuracy', '0%')}",
             'KD': fighter_data.get('Knockdown Avg', '0'),
             '%BODY': fighter_data.get('Sig. Str. by target - Body Strike Percentage', '0%'),
             '%HEAD': fighter_data.get('Sig. Str. by target - Head Strike Percentage', '0%'),
@@ -390,12 +390,22 @@ class UFCFighterPipeline:
         
         # Extract clinch data
         clinch_record = {
-            'fighters': fighter_data.get('Name', '')
+            'Player': fighter_data.get('Name', ''),
+            'Date': datetime.now().strftime('%Y-%m-%d'),
+            'Opponent': 'N/A',
+            'Event': 'N/A',
+            'Result': 'N/A',
+            'Clinch_Strikes_Landed': fighter_data.get('Sig. Str. By Position - Clinch', '0/0').split('/')[0] if '/' in fighter_data.get('Sig. Str. By Position - Clinch', '0/0') else '0',
+            'Clinch_Strikes_Attempted': fighter_data.get('Sig. Str. By Position - Clinch', '0/0').split('/')[1] if '/' in fighter_data.get('Sig. Str. By Position - Clinch', '0/0') else '0',
+            'Clinch_Accuracy': fighter_data.get('Sig. Str. By Position - Clinch', '0/0'),
+            'Clinch_Time_Control': fighter_data.get('Control Time', '0'),
+            'Clinch_Takedowns': fighter_data.get('Takedown avg Per 15 Min', '0'),
+            'Clinch_Submissions': fighter_data.get('Submission avg Per 15 Min', '0')
         }
         
         return profile, [striking_record], [ground_record], [clinch_record]
 
-    def process_existing_html_files(self, html_dir: str = 'fighter_profiles (20250215)') -> None:
+    def process_existing_html_files(self, html_dir: str = 'fighter_profiles') -> None:
         """Process existing HTML files to extract fighter data."""
         html_path = Path(html_dir)
         if not html_path.exists():
