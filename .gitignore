@@ -25,10 +25,10 @@ wheels/
 scraper.log
 ufc_scraper.log
 
-# Data files (optional - remove if you want to include them)
-*.csv
-fighter_profiles/
-fighter_profiles (20250215)/
+# Data files - INCLUDING these for the repository
+# *.csv
+# fighter_profiles/
+# fighter_profiles (20250215)/
 test_fighter_profiles/
 
 # IDE
