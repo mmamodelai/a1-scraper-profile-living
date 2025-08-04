@@ -6,15 +6,16 @@
 
 #### 1. **System Architecture Established**
 - **Unified Pipeline**: Created `ufc_fighter_pipeline.py` with advanced Cloudflare bypass
-- **Modular Design**: Split into three focused scripts:
-  - `ufc_scraper.py` - Web scraping only
-  - `fighter_profiles_processor.py` - Data extraction
-  - `position_stats_processor.py` - Specialized CSV generation
+- **Modular Design**: Split into four focused components:
+  - **1. UFC Scraper** (`ufc_scraper.py`) - UFC.com web scraping ✅
+  - **2. ESPN Scraper** (`espn_fighter_scraper.py`) - ESPN.com per-fight data ✅
+  - **3. UFC/Fighter Profiles** (`fighter_profiles_processor.py`) - Career data extraction ✅
+  - **4. ESPN/Positional Stats** - Per-fight data processing (needs integration)
 - **Advanced Scraping**: Implemented undetected-chromedriver, cloudscraper, fake-useragent for UFC.com
 
 #### 2. **Data Sources Identified**
-- **UFC.com**: ✅ Successfully scraping fighter profiles with comprehensive data
-- **ESPN.com**: ❌ Function exists but is NOT being called (critical gap identified)
+- **UFC.com**: ✅ Successfully scraping fighter profiles with comprehensive career data
+- **ESPN.com**: ✅ Standalone scraper exists and working (needs integration into main pipeline)
 
 #### 3. **Current Data Output**
 **UFC.com Data (What we have):**
@@ -29,17 +30,19 @@ Player,Date,Opponent,Event,Result,SDBL/A,SDHL/A,SDLL/A,TSL,TSA,SSL,SSA,TSL-TSA,K
 DustinPoirier,1-Jun-24,Islam Maki UFC 302,L,13,13,10,13,0,0,0,0,0,0,0,0%
 ```
 
-#### 4. **Key Discovery: Missing ESPN Integration**
-**Problem Identified:**
-- Our system has `scrape_espn_profile()` function but **never calls it**
-- Only calls `scrape_ufc_profile()` in the main pipeline
-- This is why we get career totals instead of per-fight records
+#### 4. **Key Discovery: ESPN Scraper Already Exists**
+**Current Status:**
+- ✅ **Standalone ESPN scraper** (`espn_fighter_scraper.py`) exists and is fully functional
+- ✅ **ESPN scraping logic** matches A1 system exactly (search API + stats pages)
+- ❌ **Main pipeline integration** - ESPN scraper not integrated into unified workflow
+- ❌ **Per-fight data** - Currently using UFC career data instead of ESPN fight data
 
 **Evidence:**
 ```python
-# Line 640 in ufc_fighter_pipeline.py
-ufc_futures = {executor.submit(self.scrape_ufc_profile, fighter): fighter for fighter in fighters}
-# Missing: ESPN scraping calls!
+# Our espn_fighter_scraper.py has same logic as A1:
+search_url = f"https://site.web.api.espn.com/apis/search/v2?region=us&lang=en&limit=10&page=1&query={encoded_name}"
+stats_url = profile_url.replace("/_/id/", "/stats/_/id/")
+# Creates per-fight records: Date, Opponent, Event, Result, SDBL/A, SDHL/A, SDLL/A...
 ```
 
 #### 5. **Data Processing Pipeline Working**
@@ -70,19 +73,19 @@ ufc_futures = {executor.submit(self.scrape_ufc_profile, fighter): fighter for fi
 
 ### TODO List
 
-#### **Priority 1: ESPN Scraper Integration**
-- [ ] **Fix ESPN scraping function** in `ufc_fighter_pipeline.py`
-- [ ] **Implement ESPN API calls** using A1's working pattern
-- [ ] **Add ESPN scraping to main pipeline** alongside UFC scraping
-- [ ] **Test ESPN data extraction** for per-fight records
-- [ ] **Handle ESPN rate limiting** and anti-bot measures
+#### **Priority 1: 4-Part System Implementation**
+- [ ] **1. UFC Scraper** - Already working ✅
+- [ ] **2. ESPN Scraper** - Integrate standalone `espn_fighter_scraper.py` into main pipeline
+- [ ] **3. UFC/Fighter Profiles** - Already working ✅ (career data from UFC.com)
+- [ ] **4. ESPN/Positional Stats** - Use ESPN scraper to create per-fight records
+- [ ] **Unified Pipeline** - Combine all 4 parts into single workflow
 
-#### **Priority 2: Per-Fight Data Structure**
-- [ ] **Modify data processing** to create per-fight records instead of career totals
-- [ ] **Extract fight history** from ESPN's fight-by-fight tables
-- [ ] **Map ESPN data structure** to our CSV format
-- [ ] **Handle multiple fights per fighter** (multiple rows per fighter)
-- [ ] **Validate data consistency** between UFC and ESPN sources
+#### **Priority 2: Data Integration & Processing**
+- [ ] **Separate UFC and ESPN data flows** - Keep career data (UFC) separate from per-fight data (ESPN)
+- [ ] **ESPN per-fight extraction** - Use existing `espn_fighter_scraper.py` logic
+- [ ] **Data mapping** - Ensure ESPN data matches A1 format (Date, Opponent, Event, Result)
+- [ ] **Multiple fights per fighter** - Handle multiple rows per fighter from ESPN
+- [ ] **Data validation** - Ensure consistency between UFC career data and ESPN fight data
 
 #### **Priority 3: Data Integration**
 - [ ] **Combine UFC and ESPN data** in unified pipeline
@@ -147,16 +150,22 @@ ufc_futures = {executor.submit(self.scrape_ufc_profile, fighter): fighter for fi
 fighters_name.csv → ufc_fighter_pipeline.py → fighter_profiles.csv → position_stats_processor.py → specialized CSVs
 ```
 
-### Target System Architecture
+### Target System Architecture (4-Part System)
 ```
-fighters_name.csv → ufc_fighter_pipeline.py (UFC + ESPN) → fighter_profiles.csv + per-fight CSVs → master datasets
+fighters_name.csv → 
+├── 1. UFC Scraper → UFC HTML files
+├── 2. ESPN Scraper → ESPN HTML files  
+├── 3. UFC/Fighter Profiles → fighter_profiles.csv (career data)
+└── 4. ESPN/Positional Stats → striking_data.csv, ground_data.csv, clinch_data.csv (per-fight data)
 ```
 
 ### Key Files
 - `ufc_fighter_pipeline.py` - Main pipeline (needs ESPN integration)
-- `position_stats_processor.py` - CSV generation (needs per-fight data)
-- `fighter_profiles.csv` - Current UFC data (career totals)
-- `striking_data.csv` - Target: per-fight records from ESPN
+- `espn_fighter_scraper.py` - Standalone ESPN scraper (already working)
+- `fighter_profiles_processor.py` - UFC data extraction (career data)
+- `position_stats_processor.py` - UFC data processing (needs to be replaced with ESPN data)
+- `fighter_profiles.csv` - UFC career data (already working)
+- `striking_data.csv`, `ground_data.csv`, `clinch_data.csv` - Target: per-fight records from ESPN
 
 ### A1 Reference System
 - **Location**: `20250419 Workflow/A1/`

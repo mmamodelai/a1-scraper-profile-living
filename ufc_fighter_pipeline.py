@@ -632,14 +632,16 @@ class UFCFighterPipeline:
 
 
     def scrape_fighters(self, fighters: List[str]) -> None:
-        """Scrape data for all fighters."""
-        logging.info(f"Starting to scrape data for {len(fighters)} fighters")
+        """Scrape data for all fighters from both UFC and ESPN."""
+        logging.info(f"Starting to scrape data for {len(fighters)} fighters from UFC and ESPN")
         
+        # Step 1: UFC Scraping
+        logging.info("Step 1: Scraping UFC profiles...")
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit UFC scraping tasks
             ufc_futures = {executor.submit(self.scrape_ufc_profile, fighter): fighter for fighter in fighters}
             
-            # Process completed tasks
+            # Process completed UFC tasks
             for future in tqdm(ufc_futures, desc="Scraping UFC profiles"):
                 fighter_name = ufc_futures[future]
                 try:
@@ -648,44 +650,88 @@ class UFCFighterPipeline:
                         self.success_count += 1
                         profile, striking, ground, clinch = self.process_fighter_data(fighter_data)
                         self.fighter_profiles.append(profile)
-                        self.striking_data.extend(striking)
-                        self.ground_data.extend(ground)
-                        self.clinch_data.extend(clinch)
-                        logging.info(f"Successfully scraped {fighter_name}")
+                        logging.info(f"Successfully scraped UFC profile for {fighter_name}")
                     else:
                         self.failure_count += 1
-                        logging.warning(f"Failed to scrape {fighter_name}")
+                        logging.warning(f"Failed to scrape UFC profile for {fighter_name}")
                 except Exception as e:
                     self.failure_count += 1
-                    logging.error(f"Error processing {fighter_name}: {e}")
+                    logging.error(f"Error processing UFC profile for {fighter_name}: {e}")
+        
+        # Step 2: ESPN Scraping
+        logging.info("Step 2: Scraping ESPN profiles for per-fight data...")
+        self.scrape_espn_fighters(fighters)
+    
+    def scrape_espn_fighters(self, fighters: List[str]) -> None:
+        """Scrape ESPN data for per-fight statistics."""
+        try:
+            # Import ESPN scraper functionality
+            from espn_fighter_scraper import ESPNFighterScraper
+            
+            # Create ESPN scraper with separate output directory
+            espn_output_dir = Path('espn_profiles')
+            espn_scraper = ESPNFighterScraper(
+                output_dir=str(espn_output_dir),
+                max_workers=self.max_workers,
+                rate_limit=self.rate_limit,
+                max_retries=self.max_retries
+            )
+            
+            # Scrape ESPN data
+            logging.info(f"Starting ESPN scraping for {len(fighters)} fighters...")
+            espn_results = espn_scraper.scrape_fighters(fighters)
+            
+            # Process ESPN results into our data structures
+            if 'striking' in espn_results and not espn_results['striking'].empty:
+                self.striking_data = espn_results['striking'].to_dict('records')
+                logging.info(f"Loaded {len(self.striking_data)} ESPN striking records")
+            
+            if 'Clinch' in espn_results and not espn_results['Clinch'].empty:
+                self.clinch_data = espn_results['Clinch'].to_dict('records')
+                logging.info(f"Loaded {len(self.clinch_data)} ESPN clinch records")
+            
+            if 'Ground' in espn_results and not espn_results['Ground'].empty:
+                self.ground_data = espn_results['Ground'].to_dict('records')
+                logging.info(f"Loaded {len(self.ground_data)} ESPN ground records")
+            
+            logging.info("ESPN scraping completed successfully")
+            
+        except Exception as e:
+            logging.error(f"Error during ESPN scraping: {e}")
+            logging.warning("Continuing with UFC data only")
 
     def save_data(self) -> None:
         """Save all processed data to CSV files."""
         logging.info("Saving data to CSV files...")
         
-        # Save fighter profiles
+        # Save fighter profiles (UFC career data)
         if self.fighter_profiles:
             df_profiles = pd.DataFrame(self.fighter_profiles)
             df_profiles.to_csv('fighter_profiles.csv', index=False)
-            logging.info(f"Saved {len(self.fighter_profiles)} fighter profiles")
+            logging.info(f"Saved {len(self.fighter_profiles)} UFC fighter profiles (career data)")
         
-        # Save striking data
+        # Save ESPN per-fight data (replaces UFC career totals)
         if self.striking_data:
             df_striking = pd.DataFrame(self.striking_data)
             df_striking.to_csv('striking_data.csv', index=False)
-            logging.info(f"Saved {len(self.striking_data)} striking records")
+            logging.info(f"Saved {len(self.striking_data)} ESPN striking records (per-fight data)")
         
-        # Save ground data
         if self.ground_data:
             df_ground = pd.DataFrame(self.ground_data)
             df_ground.to_csv('ground_data.csv', index=False)
-            logging.info(f"Saved {len(self.ground_data)} ground records")
+            logging.info(f"Saved {len(self.ground_data)} ESPN ground records (per-fight data)")
         
-        # Save clinch data
         if self.clinch_data:
             df_clinch = pd.DataFrame(self.clinch_data)
             df_clinch.to_csv('clinch_data.csv', index=False)
-            logging.info(f"Saved {len(self.clinch_data)} clinch records")
+            logging.info(f"Saved {len(self.clinch_data)} ESPN clinch records (per-fight data)")
+        
+        # Log data source information
+        logging.info("Data sources:")
+        logging.info(f"  - fighter_profiles.csv: UFC.com career data")
+        logging.info(f"  - striking_data.csv: ESPN.com per-fight data")
+        logging.info(f"  - ground_data.csv: ESPN.com per-fight data")
+        logging.info(f"  - clinch_data.csv: ESPN.com per-fight data")
 
     def cleanup(self):
         """Clean up resources."""
@@ -697,8 +743,12 @@ class UFCFighterPipeline:
                 pass
 
     def run_pipeline(self, fighters_file: str = 'fighters_name.csv', use_existing_html: bool = True) -> None:
-        """Run the complete UFC fighter data pipeline."""
-        logging.info("Starting UFC Fighter Data Pipeline")
+        """Run the complete 4-Part UFC/ESPN Fighter Data Pipeline."""
+        logging.info("Starting 4-Part UFC/ESPN Fighter Data Pipeline")
+        logging.info("1. UFC Scraper - UFC HTML files")
+        logging.info("2. ESPN Scraper - ESPN HTML files")
+        logging.info("3. UFC/Fighter Profiles - fighter_profiles.csv (career data)")
+        logging.info("4. ESPN/Positional Stats - per-fight CSVs")
         
         # Load fighter names
         try:
