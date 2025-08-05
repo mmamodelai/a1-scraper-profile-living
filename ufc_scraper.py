@@ -279,8 +279,12 @@ class UFCScraper:
             if not response:
                 return False
             
-            # Save HTML file
+            # Save HTML file (upsert mode - overwrites existing files)
             html_file = self.output_dir / f"{fighter_name.replace(' ', '_')}_ufc.html"
+            if html_file.exists():
+                logging.info(f"Overwriting existing UFC HTML for {fighter_name}")
+            else:
+                logging.info(f"Creating new UFC HTML for {fighter_name}")
             with open(html_file, 'w', encoding='utf-8') as f:
                 f.write(response.text)
             

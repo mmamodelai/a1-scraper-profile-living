@@ -142,8 +142,12 @@ class ESPNFighterScraper:
             
             profile_response = self._make_request(stats_url)
             
-            # Save HTML content
+            # Save HTML content (upsert mode - overwrites existing files)
             file_path = self.output_dir / f"{fighter_name.replace(' ', '_')}.html"
+            if file_path.exists():
+                logging.info(f"Overwriting existing ESPN HTML for {fighter_name}")
+            else:
+                logging.info(f"Creating new ESPN HTML for {fighter_name}")
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(profile_response.text)
             

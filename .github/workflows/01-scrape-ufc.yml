@@ -31,8 +31,10 @@ jobs:
       - name: Create fighter_profiles directory
         run: mkdir -p fighter_profiles
         
-      - name: Run UFC Scraper
-        run: python ufc_scraper.py
+      - name: Run UFC Scraper (Upsert Mode)
+        run: |
+          echo "Starting UFC scraper in UPSERT mode - will overwrite existing HTML files"
+          python ufc_scraper.py
         env:
           FIGHTERS_FILE: ${{ github.event.inputs.fighters_file }}
           
