@@ -9,6 +9,21 @@ on:
         required: true
         default: 'fighters_name.csv'
         type: string
+      sample_mod:
+        description: 'Take every Nth fighter (e.g., 50 -> 1,51,101). Leave blank to disable'
+        required: false
+        default: ''
+        type: string
+      sample_offset:
+        description: '0-based offset when using sample_mod (0..N-1). Leave blank for 0'
+        required: false
+        default: ''
+        type: string
+      max_count:
+        description: 'Process at most this many fighters. Leave blank to disable'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   scrape-ufc:
@@ -16,6 +31,9 @@ jobs:
     name: Scrape UFC Fighter Profiles
     permissions:
       contents: write
+    concurrency:
+      group: upsert-${{ github.ref }}
+      cancel-in-progress: false
     
     steps:
       - name: Checkout code
@@ -41,6 +59,9 @@ jobs:
           python ufc_scraper.py
         env:
           FIGHTERS_FILE: ${{ github.event.inputs.fighters_file }}
+          SAMPLE_MOD: ${{ github.event.inputs.sample_mod }}
+          SAMPLE_OFFSET: ${{ github.event.inputs.sample_offset }}
+          MAX_COUNT: ${{ github.event.inputs.max_count }}
           
       - name: Upload UFC HTML files
         uses: actions/upload-artifact@v4

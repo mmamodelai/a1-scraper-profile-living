@@ -268,8 +268,26 @@ def main():
     try:
         fighters_df = pd.read_csv(fighters_csv_path)
         fighters = fighters_df["Fighter Name"].tolist()
+
+        # Optional sampling controls via env vars
+        try:
+            sample_mod_raw = os.environ.get('SAMPLE_MOD', '').strip()
+            sample_offset_raw = os.environ.get('SAMPLE_OFFSET', '').strip()
+            max_count_raw = os.environ.get('MAX_COUNT', '').strip()
+
+            if sample_mod_raw:
+                mod = int(sample_mod_raw)
+                offset = int(sample_offset_raw) if sample_offset_raw else 0
+                if mod > 0:
+                    fighters = [name for idx, name in enumerate(fighters) if idx % mod == offset]
+            if max_count_raw:
+                limit = int(max_count_raw)
+                if limit > 0:
+                    fighters = fighters[:limit]
+        except Exception as e:
+            logging.warning(f"Sampling controls ignored due to error: {e}")
         
-        logging.info(f"Found {len(fighters)} fighters in {fighters_csv_path}")
+        logging.info(f"Found {len(fighters)} fighters in {fighters_csv_path} after sampling filters")
         
         scraper = ESPNFighterScraper(
             output_dir=script_dir / 'fighter_profiles',
