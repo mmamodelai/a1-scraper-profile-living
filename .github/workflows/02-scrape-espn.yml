@@ -14,10 +14,14 @@ jobs:
   scrape-espn:
     runs-on: ubuntu-latest
     name: Scrape ESPN Fighter Stats
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
         
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -26,7 +30,7 @@ jobs:
           
       - name: Install dependencies
         run: |
-          pip install requests beautifulsoup4 pandas tqdm
+          pip install requests beautifulsoup4 pandas tqdm lxml
           
       - name: Create fighter_profiles directory
         run: mkdir -p fighter_profiles
@@ -43,7 +47,6 @@ jobs:
         with:
           name: espn-html-files
           path: fighter_profiles/*.html
-          exclude: fighter_profiles/*_ufc.html
           retention-days: 30
           
       - name: Upload ESPN CSV files
@@ -54,4 +57,21 @@ jobs:
             striking_data.csv
             clinch_data.csv
             ground_data.csv
-          retention-days: 30 
+          retention-days: 30
+          
+      - name: Commit updated ESPN files (HTML + CSV) to current branch
+        run: |
+          set -e
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          BR="${{ github.ref_name }}"
+          # Stage HTML upserts and CSV outputs
+          git add fighter_profiles/*.html || true
+          git add striking_data.csv clinch_data.csv ground_data.csv || true
+          # Commit and push only if there are staged changes
+          if ! git diff --cached --quiet; then
+            git commit -m "ESPN upsert: ${{ github.run_id }} on $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            git push origin "$BR"
+          else
+            echo "No changes to commit"
+          fi
