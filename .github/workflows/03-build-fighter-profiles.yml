@@ -14,6 +14,8 @@ jobs:
   build-profiles:
     runs-on: ubuntu-latest
     name: Build Fighter Profiles from UFC HTML
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout code
@@ -32,6 +34,20 @@ jobs:
         run: python fighter_profiles_processor.py
         env:
           HTML_DIR: ${{ github.event.inputs.html_directory }}
+      
+      - name: Commit updated fighter_profiles.csv to current branch
+        run: |
+          set -e
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          BR="${{ github.ref_name }}"
+          git add fighter_profiles.csv || true
+          if ! git diff --cached --quiet; then
+            git commit -m "Build profiles: ${{ github.run_id }} on $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            git push origin "$BR"
+          else
+            echo "No changes to commit"
+          fi
           
       - name: Upload Fighter Profiles CSV
         uses: actions/upload-artifact@v4
