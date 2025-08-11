@@ -668,8 +668,8 @@ class UFCFighterPipeline:
             # Import ESPN scraper functionality
             from espn_fighter_scraper import ESPNFighterScraper
             
-            # Create ESPN scraper with separate output directory
-            espn_output_dir = Path('espn_profiles')
+            # Create ESPN scraper with consolidated output directory
+            espn_output_dir = Path('fighter_profiles')
             espn_scraper = ESPNFighterScraper(
                 output_dir=str(espn_output_dir),
                 max_workers=self.max_workers,
