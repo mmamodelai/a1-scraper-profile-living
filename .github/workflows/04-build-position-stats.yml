@@ -1,19 +1,23 @@
 name: 04 - Build Position Stats
-description: "Manually trigger position stats processing from ESPN data"
+description: "Process existing ESPN HTMLs into position CSVs (no scraping)"
 
 on:
   workflow_dispatch:
     inputs:
-      input_file:
-        description: 'Input CSV file (fighter_profiles.csv or ESPN CSVs)'
+      process_only:
+        description: 'Always process existing HTMLs (no scraping)'
         required: true
-        default: 'fighter_profiles.csv'
-        type: string
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
 
 jobs:
   build-position-stats:
     runs-on: ubuntu-latest
-    name: Build Position Stats from ESPN Data
+    name: Build Position Stats from ESPN HTML (no network)
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout code
@@ -26,12 +30,14 @@ jobs:
           
       - name: Install dependencies
         run: |
-          pip install pandas tqdm
-          
-      - name: Run Position Stats Processor
-        run: python position_stats_processor.py
+          pip install -r requirements.txt
+
+      - name: Process ESPN HTML to position CSVs (no scraping)
+        run: |
+          echo "Generating ESPN CSVs from existing HTML files in fighter_profiles/"
+          python espn_fighter_scraper.py
         env:
-          INPUT_FILE: ${{ github.event.inputs.input_file }}
+          PROCESS_ONLY: ${{ github.event.inputs.process_only }}
           
       - name: Upload Position Stats CSVs
         uses: actions/upload-artifact@v4
@@ -42,6 +48,20 @@ jobs:
             clinch_data.csv
             ground_data.csv
           retention-days: 30
+
+      - name: Commit position stats CSVs to current branch
+        run: |
+          set -e
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          BR="${{ github.ref_name }}"
+          git add striking_data.csv clinch_data.csv ground_data.csv || true
+          if ! git diff --cached --quiet; then
+            git commit -m "Position stats build: ${{ github.run_id }} on $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            git push origin "$BR"
+          else
+            echo "No changes to commit"
+          fi
           
       - name: Show processing summary
         run: |
