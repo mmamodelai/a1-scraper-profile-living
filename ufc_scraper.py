@@ -6,6 +6,7 @@ Uses advanced Cloudflare bypass techniques.
 """
 
 import requests
+import os
 import pandas as pd
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
@@ -370,7 +371,8 @@ def main():
     
     try:
         # Run the scraper
-        scraper.run_scraper()
+        fighters_file = os.environ.get('FIGHTERS_FILE', 'fighters_name.csv')
+        scraper.run_scraper(fighters_file=fighters_file)
     except KeyboardInterrupt:
         logging.info("Scraper interrupted by user")
         scraper.cleanup()
